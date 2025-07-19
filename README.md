@@ -1,2 +1,2 @@
 # Nexus-version-01
-my first project, made with PHP, HTML, tailwind CSS. 
+My first project, made with MySQL, PHP, HTML, and Tailwind CSS. 
