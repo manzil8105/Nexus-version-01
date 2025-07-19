@@ -1,0 +1,395 @@
+CREATE DATABASE KnowledgeForum;
+
+USE KnowledgeForum;
+
+-- User table
+CREATE TABLE User (
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255),
+    email VARCHAR(255) UNIQUE,
+    role_on_site VARCHAR(50),
+    password VARCHAR(255)
+);
+
+-- Post table
+CREATE TABLE Post (
+    post_id INT AUTO_INCREMENT PRIMARY KEY,
+    post_text TEXT,
+    likes INT DEFAULT 0,
+    dislikes INT DEFAULT 0,
+    title VARCHAR(255),
+    state VARCHAR(50),
+    user_id INT,
+    FOREIGN KEY (user_id) REFERENCES User(user_id) ON DELETE CASCADE
+);
+
+-- Tag table
+CREATE TABLE Tag (
+    tag_id INT AUTO_INCREMENT PRIMARY KEY,
+    tag_name VARCHAR(255)
+);
+
+-- Post to Tag mapping table
+CREATE TABLE Post_to_Tag (
+    post_id INT,
+    tag_id INT,
+    PRIMARY KEY (post_id, tag_id),
+    FOREIGN KEY (post_id) REFERENCES Post(post_id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES Tag(tag_id) ON DELETE CASCADE
+);
+
+-- Bookmark table
+CREATE TABLE Bookmark (
+    bookmark_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    post_id INT,
+    FOREIGN KEY (user_id) REFERENCES User(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (post_id) REFERENCES Post(post_id) ON DELETE CASCADE
+);
+
+-- Comments table
+CREATE TABLE Comments (
+    comment_id INT AUTO_INCREMENT PRIMARY KEY,
+    comment_text TEXT,
+    likes INT DEFAULT 0,
+    dislikes INT DEFAULT 0,
+    user_id INT,
+    post_id INT,
+    FOREIGN KEY (user_id) REFERENCES User(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (post_id) REFERENCES Post(post_id) ON DELETE CASCADE
+);
+
+-- Reputation table
+CREATE TABLE Reputation (
+    user_id INT PRIMARY KEY,
+    points INT DEFAULT 0,
+    rank VARCHAR(50),
+    FOREIGN KEY (user_id) REFERENCES User(user_id) ON DELETE CASCADE
+);
+
+-- Reports table
+CREATE TABLE Reports (
+    report_id INT AUTO_INCREMENT PRIMARY KEY,
+    report_text TEXT,
+    user_id INT,
+    post_id INT,
+    FOREIGN KEY (user_id) REFERENCES User(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (post_id) REFERENCES Post(post_id) ON DELETE CASCADE
+);
+
+-- Group Message table
+CREATE TABLE Group_Message (
+    grp_id INT AUTO_INCREMENT PRIMARY KEY,
+    grp_name VARCHAR(255),
+    message TEXT,
+    message_id INT,
+    sender_user_id INT,
+    FOREIGN KEY (sender_user_id) REFERENCES User(user_id) ON DELETE CASCADE
+);
+
+-- Personal Message table
+CREATE TABLE Personal_Message (
+    message_id INT AUTO_INCREMENT PRIMARY KEY,
+    sent_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    message TEXT,
+    sender_user_id INT,
+    receiver_user_id INT,
+    FOREIGN KEY (sender_user_id) REFERENCES User(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (receiver_user_id) REFERENCES User(user_id) ON DELETE CASCADE
+);
+
+
+
+<?php
+include("connection.php");
+
+$sql = "SELECT * 
+FROM Post AS p
+JOIN User AS u
+ON p.user_id = u.user_id";
+$result = mysqli_query($conn, $sql);
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home Page</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-900 text-yellow-500 flex flex-col min-h-screen">
+
+  <!-- Navbar -->
+  <nav class="bg-gray-800 p-4 flex items-center justify-between shadow-md">
+    <!-- Home Icon -->
+    <div>
+      <a href="hompage.php"><img src="home.png" alt="Home" class="h-8"></a>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="flex-1 mx-8">
+      <div class="bg-gray-700 border border-yellow-500 rounded-full flex items-center px-3 py-1">
+        <img src="search.png" alt="Search" class="w-6 h-6 mr-2">
+        <input
+          type="text"
+          placeholder="Search"
+          class="bg-transparent text-yellow-500 w-full focus:outline-none">
+      </div>
+    </div>
+    <div class="flex space-x-4">
+      <a href="first.php"><img src="group.png" class="w-12 h-12"></a>
+      <a href="post.php"> <img src="draft.png" class="w-12 h-12"></a>
+      <a href="privateText.php"> <img src="message2.png" class="w-12 h-12"></a>
+      <a href="groupText.php">
+        <div><img src="Screenshot_2025-01-07_225140-removebg-preview.png" class="w-12 h-12"></div>
+      </a>
+      <a href="userprofile.php"> <img src="profile2.png" class="w-12 h-12"></a>
+      <img src="bookmark2.png" class="w-12 h-12">
+      <img src="ninedot.png" class="w-12 h-12">
+    </div>
+
+  </nav>
+
+  <main class="flex gap-4 p-6 mt-2 overflow-y-scroll rounded-lg">
+    <section class="w-3/4">
+      <!-- Post Card -->
+      <!-- Post Card -->
+<?php
+while ($row = mysqli_fetch_array($result)) {
+?>
+  <div class="bg-gray-800 rounded-lg p-4 mb-6 shadow-md border-2 border-yellow-500">
+    <div class="flex items-center gap-2 mb-2">
+      <img src="profile.png" alt="User" class="h-10 w-10 rounded-full">
+      <div>
+        <h3 class="font-semibold"><?php echo $row["name"]; ?></h3>
+        <p class="text-sm text-gray-400"><?php echo $row["role_on_site"]; ?></p>
+      </div>
+    </div>
+    <h2 class="text-lg font-bold"><?php echo $row["title"]; ?></h2>
+    <span><?php echo $row["state"]; ?></span>
+
+    <!-- Truncated post_text -->
+    <p class="text-gray-300 mt-2 bg-gray-900 p-4 h-[200px]">
+      <?php
+      $truncatedText = substr($row["post_text"], 0, 250);
+      echo $truncatedText;
+      if (strlen($row["post_text"]) > 250) {
+        echo '... <a href="fullpostview.php?post_id=' . $row["post_id"] . '" class="text-yellow-400">See More</a>';
+      }
+      ?>
+    </p>
+
+    <div class="flex items-center justify-between text-yellow-400 mt-4">
+      <div class="flex space-x-6 items-center">
+        <button class="flex items-center space-x-1 hover:text-red-500">
+          <span>❤️</span>
+          <span><?php echo $row["likes"]; ?></span>
+        </button>
+        <button class="flex items-center space-x-1 hover:text-gray-500">
+          <span>👎</span>
+          <span><?php echo $row["dislikes"]; ?></span>
+        </button>
+        <button class="flex items-center space-x-1 hover:text-yellow-300">
+          <span>📑</span>
+          <span>00</span>
+        </button>
+        <button class="flex items-center space-x-1 hover:text-blue-400">
+          <span>💬</span>
+          <span>00</span>
+        </button>
+        <button class="flex items-center space-x-1 hover:text-green-400">
+          <span>📤</span>
+        </button>
+      </div>
+      <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">AI</button>
+    </div>
+  </div>
+<?php
+}
+?>
+
+
+    </section>
+
+    <aside class="w-1/4 h-1/4 bg-gray-800 rounded-lg p-4 shadow-md border-2 border-yellow-500 ">
+
+
+      <h2 class="text-xl font-bold mb-4">📚 Tag Library</h2>
+      <input
+        .............
+        type="text"
+        placeholder="Search Tags"
+        class="w-40 px-1 py-1 bg-gray-900 text-yellow-400 placeholder-gray-500 rounded-full focus:outline-none mb-4 border-2 border-yellow-500 ">
+      <div class="flex flex-wrap gap-2 text-gray-100 mt-2 bg-gray- p-5 h-[700px] overflow-y-scroll rounded-lg">
+
+        <button class="bg-yellow-500 text-gray-900 px-2 py-1 rounded-md">CS</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">AI</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">DSA</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">Linear Algebra</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">TOC</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">SOC</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">CN</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">Calculas</button><button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">CS</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">AI-Lab</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">DSA-2</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">Vector</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">Statistic</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">SAD</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">DLD</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">SPL</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">CS</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">DSA-1-Lab</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">DSA-1</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">Computer Architecture</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">Physics</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">Machine Learning</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">DBMS</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">DBMS-Lab</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">Web development</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">DSA-2-Lab</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">Computer Architecture</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">Data Science</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">Cybersecurity</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md"> Human-Computer Interaction </button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">Mobile App Developer</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">DSA-1</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">Computer Architecture</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">Physics</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">Machine Learning</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">DBMS</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">DBMS-Lab</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">Web development</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">DSA-2-Lab</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">Computer Architecture</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">Data Science</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">Cybersecurity</button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md"> Human-Computer Interaction </button>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">Mobile App Developer</button>
+        </p>
+
+      </div>
+    </aside>
+  </main>
+
+</body>
+
+</html>
+
+
+
+
+
+<?php
+include("connection.php");
+
+$sql = "SELECT * 
+FROM Post AS p
+JOIN User AS u
+ON p.user_id = u.user_id";
+$result = mysqli_query($conn, $sql);
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Full post view</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <nav class="bg-gray-800 p-4 flex items-center justify-between shadow-md">
+    <!-- Home Icon -->
+    <div>
+      <a href="hompage.php"><img src="home.png" alt="Home" class="h-8"></a>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="flex-1 mx-8">
+      <div class="bg-gray-700 border border-yellow-500 rounded-full flex items-center px-3 py-1">
+        <img src="search.png" alt="Search" class="w-6 h-6 mr-2">
+        <input 
+          type="text" 
+          placeholder="Search"
+          class="bg-transparent text-yellow-500 w-full focus:outline-none">
+      </div>
+    </div>
+<div class="flex space-x-4">
+    <a href="first.html"><img src="group.png" class="w-12 h-12"></a>
+    <a href="post.html"> <img src="draft.png" class="w-12 h-12"></a>
+    <a href="privateText.html"> <img src="message2.png" class="w-12 h-12"></a>
+    <a href="groupText.html"> <div  ><img src="Screenshot_2025-01-07_225140-removebg-preview.png" class="w-12 h-12"></div></a>
+    <a href="userprofile.html"> <img src="profile2.png" class="w-12 h-12"></a>
+     <img src="bookmark2.png" class="w-12 h-12">
+     <img src="ninedot.png" class="w-12 h-12">
+    </div>
+
+  </nav>
+</head>
+<body class="bg-gray-900 text-gray-300">
+  
+   
+  </header>
+
+  <main class="p-6">
+
+    <div class="mt-6">
+
+      <div class="bg-gray-800 rounded-lg p-4 mb-6 shadow-md border-2 border-yellow-500">
+        <div class="flex justify-between">
+          <div class="flex items-center gap-2 mb-2">
+            <img src="profile.png" alt="User" class="h-10 w-10 rounded-full">
+            <div>
+              <h3 class="font-semibold">Manzil Ahsan</h3>
+              <p class="text-sm text-gray-400">&lt;Explorer&gt;</p>
+            </div>
+          </div>
+          <div>
+            <!-- to do -->
+            <img src="" alt="filter">
+          </div>
+        </div>
+        <h2 class="text-lg font-bold"><?php echo $row["title"]; ?></h2>
+
+        <p class="text-gray-300 mt-2 bg-gray-900 p-4 h-[200px]">
+            <?php echo $row["post_text"]; ?>
+        
+        <div class="flex items-center justify-between text-yellow-400 mt-4">
+          <div class="flex space-x-6 items-center">
+            <button class="flex items-center space-x-1 hover:text-red-500">
+              <span>❤️</span>
+              <span>30</span>
+            </button>
+        
+            <button class="flex items-center space-x-1 hover:text-gray-500">
+              <span>👎</span>
+              <span>10</span>
+            </button>
+        
+            <button class="flex items-center space-x-1 hover:text-yellow-300">
+              <span>📑</span>
+              <span>15</span>
+            </button>
+        
+            <button class="flex items-center space-x-1 hover:text-blue-400">
+              <span>💬</span>
+              <span>42</span>
+            </button>
+        
+            <button class="flex items-center space-x-1 hover:text-green-400">
+              <span>📤</span>
+              <span>3</span>
+            </button>
+          </div>
+        
+          <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">
+            AI
+          </button>
+        </div>
+        
+      </div>
+    </div>
+  </main>
+</body>
+</html>

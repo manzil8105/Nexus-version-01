@@ -1,0 +1,234 @@
+<?php
+include("connection.php");
+
+// Fetch tag if selected, otherwise fetch all posts
+$selectedTag = isset($_GET['tag']) ? mysqli_real_escape_string($conn, $_GET['tag']) : '';
+if ($selectedTag) {
+    $sql = "SELECT p.*, u.name, u.role_on_site 
+            FROM Post AS p
+            JOIN User AS u ON p.user_id = u.user_id
+            JOIN Post_to_Tag AS pt ON p.post_id = pt.post_id
+            JOIN Tag AS t ON pt.tag_id = t.tag_id
+            WHERE t.tag_name = '$selectedTag'";
+} else {
+    $sql = "SELECT p.*, u.name, u.role_on_site 
+            FROM Post AS p
+            JOIN User AS u ON p.user_id = u.user_id";
+}
+
+$result = mysqli_query($conn, $sql);
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home Page</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-900 text-yellow-500 flex flex-col min-h-screen">
+
+  <!-- Navbar -->
+  <nav class="bg-gray-800 p-4 flex items-center justify-between shadow-md">
+    <div>
+      <a href="hompage.php"><img src="home.png" alt="Home" class="h-8"></a>
+    </div>
+    <div class="flex-1 mx-8">
+      <div class="bg-gray-700 border border-yellow-500 rounded-full flex items-center px-3 py-1">
+        <img src="search.png" alt="Search" class="w-6 h-6 mr-2">
+        <input type="text" placeholder="Search" class="bg-transparent text-yellow-500 w-full focus:outline-none">
+      </div>
+    </div>
+    <div class="flex space-x-4">
+      <a href="first.php"><img src="group.png" class="w-12 h-12"></a>
+      <a href="post.php"> <img src="draft.png" class="w-12 h-12"></a>
+      <a href="privateText.php"> <img src="message2.png" class="w-12 h-12"></a>
+      <a href="groupText.php"><div><img src="group.png" class="w-12 h-12"></div></a>
+      <a href="userprofile.php"> <img src="profile2.png" class="w-12 h-12"></a>
+    </div>
+  </nav>
+
+  <main class="flex gap-4 p-6 mt-2 overflow-y-scroll rounded-lg">
+    <section class="w-3/4">
+      <?php while ($row = mysqli_fetch_array($result)) { ?>
+        <div class="bg-gray-800 rounded-lg p-4 mb-6 shadow-md border-2 border-yellow-500">
+          <div class="flex items-center gap-2 mb-2">
+            <img src="profile.png" alt="User" class="h-10 w-10 rounded-full">
+            <div>
+              <h3 class="font-semibold"><?php echo $row["name"]; ?></h3>
+              <p class="text-sm text-gray-400"><?php echo $row["role_on_site"]; ?></p>
+            </div>
+          </div>
+          <h2 class="text-lg font-bold"><?php echo $row["title"]; ?></h2>
+          <span><?php echo $row["state"]; ?></span>
+          <p class="text-gray-300 mt-2 bg-gray-900 p-4 h-[200px]">
+            <?php
+            $truncatedText = substr($row["post_text"], 0, 250);
+            echo $truncatedText;
+            if (strlen($row["post_text"]) > 250) {
+              echo '... <a href="fullpostview.php?post_id=' . $row["post_id"] . '" class="text-yellow-400">See More</a>';
+            }
+            ?>
+          </p>
+        </div>
+      <?php } ?>
+    </section>
+
+    <aside class="w-1/4 bg-gray-800 rounded-lg p-4 shadow-md border-2 border-yellow-500">
+      <h2 class="text-xl font-bold mb-4">📚 Tag Library</h2>
+      <div class="flex flex-wrap gap-2 text-gray-100 mt-2">
+        <?php
+        // Fetch all tags
+        $tagsQuery = "SELECT * FROM Tag";
+        $tagsResult = mysqli_query($conn, $tagsQuery);
+        while ($tag = mysqli_fetch_assoc($tagsResult)) {
+        ?>
+          <form action="hompage.php" method="GET" class="inline">
+            <input type="hidden" name="tag" value="<?php echo $tag['tag_name']; ?>">
+            <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md mb-2">
+              <?php echo $tag['tag_name']; ?>
+            </button>
+          </form>
+        <?php } ?>
+      </div>
+    </aside>
+  </main>
+</body>
+</html>
+
+
+fulpost : 
+
+<?php
+include("connection.php");
+
+// Get post_id from the URL
+$post_id = isset($_GET['post_id']) ? intval($_GET['post_id']) : 0;
+
+// Fetch the post and its author's details from the database
+$sql = "SELECT p.*, u.name, u.role_on_site 
+        FROM Post AS p
+        JOIN User AS u ON p.user_id = u.user_id
+        WHERE p.post_id = $post_id";
+$result = mysqli_query($conn, $sql);
+
+// Check if the post exists
+if ($result && mysqli_num_rows($result) > 0) {
+    $row = mysqli_fetch_assoc($result);
+} else {
+    die("Post not found.");
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><?php echo htmlspecialchars($row["title"]); ?></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-300">
+  
+  <!-- Navbar -->
+  <nav class="bg-gray-800 p-4 flex items-center justify-between shadow-md">
+    <!-- Home Icon -->
+    <div>
+      <a href="hompage.php"><img src="home.png" alt="Home" class="h-8"></a>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="flex-1 mx-8">
+      <div class="bg-gray-700 border border-yellow-500 rounded-full flex items-center px-3 py-1">
+        <img src="search.png" alt="Search" class="w-6 h-6 mr-2">
+        <input 
+          type="text" 
+          placeholder="Search"
+          class="bg-transparent text-yellow-500 w-full focus:outline-none">
+      </div>
+    </div>
+
+    <div class="flex space-x-4">
+      <a href="first.html"><img src="group.png" class="w-12 h-12"></a>
+      <a href="post.html"> <img src="draft.png" class="w-12 h-12"></a>
+      <a href="privateText.html"> <img src="message2.png" class="w-12 h-12"></a>
+      <a href="groupText.html"><div><img src="Screenshot_2025-01-07_225140-removebg-preview.png" class="w-12 h-12"></div></a>
+      <a href="userprofile.html"> <img src="profile2.png" class="w-12 h-12"></a>
+      <img src="bookmark2.png" class="w-12 h-12">
+      <img src="ninedot.png" class="w-12 h-12">
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="p-6">
+    <div class="bg-gray-800 rounded-lg p-4 mb-6 shadow-md border-2 border-yellow-500">
+      <div class="flex justify-between">
+        <!-- User Info -->
+        <div class="flex items-center gap-2 mb-2">
+          <img src="profile.png" alt="User" class="h-10 w-10 rounded-full">
+          <div>
+            <h3 class="font-semibold"><?php echo htmlspecialchars($row["name"]); ?></h3>
+            <p class="text-sm text-gray-400"><?php echo htmlspecialchars($row["role_on_site"]); ?></p>
+          </div>
+        </div>
+      </div>
+      <!-- Post Title -->
+      <h2 class="text-lg font-bold"><?php echo htmlspecialchars($row["title"]); ?></h2>
+      <!-- Post Content -->
+      <p class="text-gray-300 mt-4 bg-gray-900 p-4 rounded-md leading-relaxed">
+        <?php echo nl2br(htmlspecialchars($row["post_text"])); ?>
+      </p>
+      <!-- Post Interactions -->
+      <div class="flex items-center justify-between text-yellow-400 mt-4">
+        <div class="flex space-x-6 items-center">
+          <button class="flex items-center space-x-1 hover:text-red-500">
+            <span>❤️</span>
+            <span><?php echo $row["likes"]; ?></span>
+          </button>
+          <button class="flex items-center space-x-1 hover:text-gray-500">
+            <span>👎</span>
+            <span><?php echo $row["dislikes"]; ?></span>
+          </button>
+          <button class="flex items-center space-x-1 hover:text-yellow-300">
+            <span>📑</span>
+            <span>15</span>
+          </button>
+          <button class="flex items-center space-x-1 hover:text-blue-400">
+            <span>💬</span>
+            <span>42</span>
+          </button>
+          <button class="flex items-center space-x-1 hover:text-green-400">
+            <span>📤</span>
+          </button>
+        </div>
+        <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md">AI</button>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
+
+
+------------------
+
+
+<aside class="w-1/4 bg-gray-800 rounded-lg p-4 shadow-md border-2 border-yellow-500">
+      <h2 class="text-xl font-bold mb-4">📚 Tag Library</h2>
+      <div class="flex flex-wrap gap-2 text-gray-100 mt-2 h-96 overflow-y-scroll">
+        <form action="hompage.php" method="GET" class="mb-4">
+          <input type="text" name="search" placeholder="Search Tags" value="<?php echo htmlspecialchars($searchQuery); ?>" 
+                 class="w-full px-3 py-2 bg-gray-900 text-yellow-400 placeholder-gray-500 rounded-md focus:outline-none">
+        </form>
+        <?php while ($tag = mysqli_fetch_assoc($tagsResult)) { ?>
+          <form action="hompage.php" method="GET" class="inline">
+            <input type="hidden" name="tag" value="<?php echo $tag['tag_name']; ?>">
+            <button class="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md mb-2">
+              <?php echo $tag['tag_name']; ?>
+            </button>
+          </form>
+        <?php } ?>
+      </div>
+    </aside>
