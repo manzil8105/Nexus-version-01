@@ -1,4 +1,4 @@
-CREATE DATABASE KnowledgeForum;
+CREATE DATABASE Nexus;
 
 USE KnowledgeForum;
 
